@@ -10,23 +10,68 @@ while (perm.length < 255) {
     perm.push(val);
 }
 
-var lerp = (a, b, t) => a + (b - a) * t;
+var lerp = (a, b, t) => a + (b - a) * (1 - Math.cos(t * Math.PI)) / 2;
 var noise = x => {
-    x = x % 225;
-    return lerp(perm[Math.floor(x)], perm[Math.ceil(x)], x = Math.floor(x));
+    x = x * 0.01 % 225;
+    return lerp(perm[Math.floor(x)], perm[Math.ceil(x)], x - Math.floor(x));
 }
 
+var player = new function() {
+    this.x = c.width / 2;
+    this.y = 0;
+    this.ySpeed = 0;
+    this.rot = 0;
+    this.rspeed = 0;
+
+    this.img = new Image();
+    this.img.src = "moto.png"
+    this.draw = function() {
+        var p1 = c.height - noise(t + this.x) * 0.25;
+        var p2 = c.height - noise(t + 5 + this.x) * 0.25;
+
+        var grounded = 0;
+        if (p1 - 15 > this.y) {
+            this.ySpeed += 0.1;
+        } else {
+            this.ySpeed -= this.y - (p1 - 15);
+            this.y = p1 - 15;
+            grounded = 1;
+        }
+
+
+        var angle = Math.atan((p2 - 15) - this.y, (this.x + 5) - this.x);
+        this.y += this.ySpeed;
+        if (grounded) {
+            this.rot -= (this.rot - angle) * 0.5;
+            this.rspeed = this.rspeed - (angle - this.rot);
+        }
+
+        this.rot -= this.rspeed * 0.1;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rot);
+        ctx.drawImage(this.img, -15, -15, 30, 30);
+        ctx.restore();
+    }
+}
+
+var t = 0;
+
 function loop() {
+    t += 5;
     ctx.fillStyle = '#19f';
     ctx.fillRect(0, 0, c.width, c.height);
 
     ctx.fillStyle = "black";
     ctx.beginPath();
+    ctx.moveTo(0, c.height);
     for (let i = 0; i < c.width; i++)
-        ctx.lineTo(i, noise(i));
+        ctx.lineTo(i, c.height - noise(t + i) * 0.25);
 
+    ctx.lineTo(c.width, c.height);
     ctx.fill();
 
+    player.draw();
     requestAnimationFrame(loop);
 }
 
